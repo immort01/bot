@@ -19,30 +19,38 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
-    try:
-        time_str, task = text.split(' - ', 1)
-        task_time = datetime.datetime.strptime(time_str.strip(), "%H:%M")
-        
-        now = datetime.datetime.now()
-        schedule_time = now.replace(hour=task_time.hour, minute=task_time.minute, second=0, microsecond=0)
+    lines = text.strip().split('\n')
+    successful = []
 
-        if schedule_time < now:
-            schedule_time += datetime.timedelta(days=1)  # Schedule for tomorrow
+    for line in lines:
+        try:
+            time_str, task = line.split(' - ', 1)
+            task_time = datetime.datetime.strptime(time_str.strip(), "%H:%M")
+            now = datetime.datetime.now()
+            schedule_time = now.replace(hour=task_time.hour, minute=task_time.minute, second=0, microsecond=0)
 
-        user_id = update.message.chat_id
+            if schedule_time < now:
+                schedule_time += datetime.timedelta(days=1)  # Schedule for tomorrow
 
-        scheduler.add_job(
-            send_task,
-            trigger='date',
-            run_date=schedule_time,
-            args=[context, user_id, task]
-        )
+            user_id = update.message.chat_id
 
-        timetable.append((schedule_time, task))
-        await update.message.reply_text(f"Task scheduled: {task} at {schedule_time.strftime('%H:%M')}")
+            scheduler.add_job(
+                send_task,
+                trigger='date',
+                run_date=schedule_time,
+                args=[context, user_id, task]
+            )
 
-    except Exception:
-        await update.message.reply_text("Format should be: HH:MM - Task description")
+            timetable.append((schedule_time, task))
+            successful.append(f"{schedule_time.strftime('%H:%M')} - {task}")
+
+        except Exception:
+            continue  # skip invalid lines silently for now
+
+    if successful:
+        await update.message.reply_text("Scheduled:\n" + "\n".join(successful))
+    else:
+        await update.message.reply_text("Please use format: HH:MM - Task description (one per line)")
 
 async def send_task(context, user_id, task):
     await context.bot.send_message(chat_id=user_id, text=f"Reminder: {task}")
