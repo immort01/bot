@@ -5,7 +5,8 @@ import datetime
 import os
 
 # Get token securely from environment
-BOT_TOKEN = os.getenv("7759331108:AAF83gWTAx-9tvPvKkPflc4IVIme3pIc0jU")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
 
 # Global store for timetable
 timetable = []
